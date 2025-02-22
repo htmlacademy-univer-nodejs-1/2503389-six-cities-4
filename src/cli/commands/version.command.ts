@@ -1,5 +1,5 @@
 import { readFileSync } from 'fs';
-import { ICommand } from './command.interface';
+import { Command } from './command.interface';
 import { resolve } from 'path';
 
 
@@ -16,7 +16,7 @@ function isPackageJSONConfig(value: unknown): value is TPackageJSONConfig {
   );
 }
 
-export class VersionCommand implements ICommand {
+export class VersionCommand implements Command {
   constructor(
     private readonly filePath: string = './package.json'
   ) {}

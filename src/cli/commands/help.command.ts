@@ -1,7 +1,7 @@
-import { ICommand } from './command.interface';
+import { Command } from './command.interface';
 
 
-export class HelpCommand implements ICommand {
+export class HelpCommand implements Command {
   public getName(): string {
     return '--help';
   }
@@ -15,7 +15,7 @@ export class HelpCommand implements ICommand {
         --version:                       # Номер версии
         --help:                          # Печатает данный текст
         --import <path>:                 # Импортирует данные 
-        -- generate <n> <path> <url>     # Генерирует данные
+        --generate <n> <path> <url>      # Генерирует данные
     `);
   }
 }

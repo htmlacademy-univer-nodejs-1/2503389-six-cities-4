@@ -1,0 +1,147 @@
+{
+  "api": {
+    "titles": [
+      "Уютная квартира",
+      "Семейный дом с садом",
+      "Комфортабельная квартира",
+      "Супер загадочный дом",
+      "Милые апартаменты",
+      "Яркий отель для молодых"
+    ],
+    "descriptions": [
+      "Прекрасная квартира с видом на Эйфелеву башню и исторический центр города. Идеально подходит для пары или небольшой семьи. Близко к метро и основным достопримечательностям.",
+      "Просторный дом с большим садом, идеальный для семейного отдыха или компании друзей. Расположен в тихом жилом районе недалеко от центра города. В доме есть все необходимое для комфортного проживания.",
+      "Стильная и уютная квартира с современным дизайном и всеми удобствами для комфортного пребывания. Расположенная в удобном районе с легким доступом к транспорту и магазинам.",
+      "Загадочный дом, пропитанный атмосферой тайны и загадок, идеально подходящий для любителей необычных приключений...",
+      "Яркий и стильный отель, созданный специально для молодых путешественников. С богатой программой развлечений и уютными номерами."
+    ],
+    "postDates": [
+      "2024-02-19T08:45:40.283Z",
+      "2024-03-10T08:45:40.283Z",
+      "2024-02-15T08:45:40.283Z",
+      "2024-01-12T08:45:40.283Z",
+      "2024-01-09T08:45:40.283Z",
+      "2024-03-06T08:45:40.283Z"
+    ],
+    "cities": [
+      "Paris",
+      "Amsterdam",
+      "Cologne",
+      "Brussels",
+      "Hamburg",
+      "Dusseldorf"
+    ],
+    "previewPhotos": [
+      "prev-photo-a.jpg",
+      "prev-photo-a.jpg",
+      "prev-photo-c.jpg",
+      "prev-photo-b.jpg",
+      "prev-photo-h.jpg",
+      "prev-photo-d.jpg"
+    ],
+    "photos": [
+      "photo-1.jpg",
+      "photo-2.jpg",
+      "photo-3.jpg",
+      "photo-4.jpg",
+      "photo-5.jpg",
+      "photo-6.jpg",
+      "photo-7.jpg",
+      "photo-8.jpg",
+      "photo-9.jpg",
+      "photo-10.jpg"
+    ],
+    "isPremiums": [
+      true,
+      false
+    ],
+    "isFavorites": [
+      true,
+      false
+    ],
+    "ratings": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "types": [
+      "apartament",
+      "house",
+      "room",
+      "hotel"
+    ],
+    "roomCounts": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "guestsCounts": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "prices": [
+      100,
+      300,
+      900,
+      5000,
+      10000,
+      99000
+    ],
+    "facilities": [
+      "Breakfast",
+      "Air conditioning",
+      "Laptop friendly workspace",
+      "Baby seat",
+      "Washer",
+      "Towels",
+      "Fridge"
+    ],
+    "authorNames": [
+      "Fred",
+      "Lora",
+      "Daniel",
+      "Sofia",
+      "Alex",
+      "Maria"
+    ],
+    "authorEmails": [
+      "fred@example.com",
+      "lora@example.com",
+      "daniel@example.com",
+      "sofia@example.com",
+      "alex@example.com",
+      "maria@example.com"
+    ],
+    "authorAvatars": [
+      "fred-avatar.jpg",
+      "lora-avatar.jpg",
+      "daniel-avatar.jpg",
+      "sofia-avatar.jpg",
+      "alex-avatar.jpg",
+      "maria-avatar.jpg"
+    ],
+    "coordinates": [
+      "latitude: 48.85661, longitude: 2.351499",
+      "latitude: 52.370216, longitude: 4.895168",
+      "latitude: 50.938361, longitude: 6.959974",
+      "latitude: 50.846557, longitude: 4.351697",
+      "latitude: 53.550341, longitude: 10.000654",
+      "latitude: 51.225402, longitude: 6.776314"
+    ]
+  }
+}

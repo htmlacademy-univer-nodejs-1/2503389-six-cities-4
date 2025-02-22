@@ -1,8 +1,8 @@
 import { CommandParser } from './command-parser.js';
-import { ICommand } from './commands/command.interface';
+import { Command } from './commands/command.interface';
 
 
-type TCommandCollection = Record<string, ICommand>;
+type TCommandCollection = Record<string, Command>;
 
 export class CLIApplication {
   constructor(
@@ -11,7 +11,7 @@ export class CLIApplication {
 
   private commands: TCommandCollection = {};
 
-  public registredCommands(commandList: ICommand[]): void {
+  public registredCommands(commandList: Command[]): void {
     commandList.forEach((command) => {
       if(Object.hasOwn(this.commands, command.getName())) {
         throw new Error(`Command ${command.getName()} is alredy registered.`);
@@ -20,11 +20,11 @@ export class CLIApplication {
     });
   }
 
-  public getCommand(commandName: string): ICommand {
+  public getCommand(commandName: string): Command {
     return this.commands[commandName] ?? this.getDefaultCommand();
   }
 
-  public getDefaultCommand(): ICommand {
+  public getDefaultCommand(): Command {
     if(!this.commands[this.defaultCommand]) {
       throw new Error(`The default command (${this.defaultCommand}) is not registered`);
     }

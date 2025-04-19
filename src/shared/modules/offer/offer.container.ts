@@ -5,6 +5,7 @@ import { OfferEntity, OfferModel } from './offer.entity.js';
 import { types } from '@typegoose/typegoose';
 import { Component } from '../../types/component.enum.js';
 
+
 export function createOfferContainer() {
   const offerContainer = new Container();
 

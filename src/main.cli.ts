@@ -2,6 +2,7 @@
 import 'reflect-metadata';
 import { CLIApplication, GenerateCommand, HelpCommand, VersionCommand, ImportCommand } from './cli/index.js';
 
+
 function bootstrap() {
   const cliApplication = new CLIApplication();
   cliApplication.registredCommands([

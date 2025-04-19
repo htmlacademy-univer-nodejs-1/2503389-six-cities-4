@@ -1,6 +1,6 @@
-import { readFileSync } from 'fs';
+import { readFileSync } from 'node:fs';
 import { Command } from './command.interface';
-import { resolve } from 'path';
+import { resolve } from 'node:path';
 
 
 type TPackageJSONConfig = {

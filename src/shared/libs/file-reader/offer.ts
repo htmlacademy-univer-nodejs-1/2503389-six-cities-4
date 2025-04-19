@@ -1,5 +1,12 @@
-import { Offer, City, HouseType, Facilities, User, Coordinates } from '../../types';
-
+import {
+  Offer,
+  City,
+  HouseType,
+  ConvenienceType,
+  User,
+  UserType,
+  Comment         // чтобы типизировать пустой массив comments
+} from '../../types';
 
 export function createOffer(offerData: string): Offer {
   const [
@@ -7,44 +14,50 @@ export function createOffer(offerData: string): Offer {
     description,
     postDate,
     city,
-    previewPhoto,
-    photos,
+    imagePreview,
+    photosHousing,
     isPremium,
     isFavorite,
     rating,
-    type,
-    roomCount,
-    guestsCount,
+    houseType,
+    numberRooms,
+    numberGuests,
     price,
-    facilities,
-    name,
+    conveniences,
+    firstname,
     email,
     avatarPath,
-    coordinates
+    userType
+    // coordinates   ← убрали из деструктуризации
   ] = offerData.replace('\n', '').split('\t');
 
   const user: User = {
-    name,
+    firstname,
     email,
-    avatarPath
+    avatarPath,
+    type: userType as UserType
   };
 
   return {
     title,
     description,
     postDate: new Date(postDate),
-    city: city as City,
-    previewPhoto,
-    photos: photos ? photos.split(';').map((url) => url.trim()) : [],
+    city: city as unknown as City,
+    imagePreview,
+    photosHousing: photosHousing
+      ? photosHousing.split(';').map((url) => url.trim())
+      : [],
     isPremium: isPremium === 'true',
     isFavorite: isFavorite === 'true',
     rating: parseInt(rating, 10),
-    type: type as HouseType,
-    roomCount: parseInt(roomCount, 10),
-    guestsCount: parseInt(guestsCount, 10),
+    type: houseType as HouseType,
+    numberRooms: parseInt(numberRooms, 10),
+    numberGuests: parseInt(numberGuests, 10),
     price: Number.parseInt(price, 10),
-    facilities: facilities ? facilities.split(';').map((facility) => facility.trim()) as Facilities[] : [],
+    conveniences: conveniences
+      ? conveniences.split(';').map((c) => c.trim() as ConvenienceType)
+      : [],
     author: user,
-    coordinates: coordinates as Coordinates,
+    comments: [] as Comment[]        // обязательное поле интерфейса Offer
   };
 }

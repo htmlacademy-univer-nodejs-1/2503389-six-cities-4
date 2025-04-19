@@ -25,8 +25,8 @@ export const configRestSchema = convict<RestSchema>({
   },
   DB_HOST: {
     doc: 'IP address of the database server (MongoDB)',
-    format: 'ipaddress', // Используем кастомный формат
+    format: 'ipaddress', 
     env: 'DB_HOST',
-    default: '127.0.0.1',
+    default: 'six-cities',
   },
 });

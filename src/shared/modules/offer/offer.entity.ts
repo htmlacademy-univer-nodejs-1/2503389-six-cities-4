@@ -1,76 +1,76 @@
 import { defaultClasses, getModelForClass, modelOptions, prop, Ref } from '@typegoose/typegoose';
-import { ConvenienceType, HouseType } from '../../types/index.js';
-import { CityEntity } from '../city/index.js';
+import { City, Coordinates, HouseType } from '../../types/index.js';
 import { UserEntity } from '../user/index.js';
+import { Facilities } from '../../types/facilities.enum.js';
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
-export interface OfferEntity extends defaultClasses.Base {}
+
+export interface OfferEntity extends defaultClasses.Base {
+}
 
 @modelOptions({
   schemaOptions: {
     collection: 'offers'
   }
 })
-// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
+
 export class OfferEntity extends defaultClasses.TimeStamps {
-  @prop({ trim: true, required: true })
-  public title!: string;
+  @prop({type: String, required: true, minlength: 10, maxlength: 100, trim: true,})
+  public name: string;
 
-  @prop({trim: true})
-  public description!: string;
+  @prop({type: String, required: true, minlength: 20, maxlength: 1024, trim: true,})
+  public description: string;
 
-  @prop()
-  public postDate!: Date;
+  @prop({type: String, required: true})
+  public datePublished: Date;
 
-  @prop({
-    ref: CityEntity,
-    required: true,
-  })
-  public cityId!: Ref<CityEntity>;
+  @prop({type: String, enum: City, required: true})
+  public city: City;
 
-  @prop()
-  public imagePreview!: string;
+  @prop({type: String, required: true})
+  public previewImagePath: string;
 
-  @prop({
-    type: () => String,
-  })
-  public photosHousing!: string[];
+  @prop({type: Array, required: true})
+  public photosPaths: string[];
 
-  @prop()
-  public isPremium!: boolean;
+  @prop({type: Boolean, required: true, default: false})
+  public isPremium: boolean;
 
-  @prop()
-  public isFavorite!: boolean;
+  @prop({type: Boolean, required: true, default: false})
+  public isFavorite: boolean;
 
-  @prop()
-  public rating!: number;
+  @prop({type: Number, required: true, min: 1, max: 5})
+  public rating: number;
 
-  @prop({
-    type: () => String,
-    enum: HouseType
-  })
-  public type!: HouseType;
+  @prop({type: String, enum: HouseType, required: true})
+  public houseType: HouseType;
 
-  @prop()
-  public numberRooms!: number;
+  @prop({type: Number, required: true, min: 1, max: 8})
+  public numberRooms: number;
 
-  @prop()
-  public numberGuests!: number;
+  @prop({type: Number, required: true, min: 1, max: 10})
+  public numberGuests: number;
 
-  @prop()
-  public price!: number;
+  @prop({type: Number, required: true, min: 100, max: 100000})
+  public rentPrice: number;
 
-  @prop({
-    type: () => String,
-    enum: ConvenienceType
-  })
-  public conveniences!: ConvenienceType[];
+  @prop({type: Array, required: true})
+  public facilities: Facilities[];
 
   @prop({
     ref: UserEntity,
-    required: true
+    required: true,
+    type: String
   })
-  public authorId!: Ref<UserEntity>;
+  public userId: Ref<UserEntity>;
+
+  @prop({type: Number, default: 0})
+  public numberComments: number;
+
+  @prop({
+    type: () => String,
+    enum: Coordinates
+  })
+  public coordinates: Coordinates;
 }
 
 export const OfferModel = getModelForClass(OfferEntity);

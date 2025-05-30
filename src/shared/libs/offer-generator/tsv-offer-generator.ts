@@ -3,6 +3,7 @@ import { generateRandomValue, getRandomItem, getRandomItems } from '../../helper
 import { MockServerData } from '../../types/index.js';
 import { IOfferGenerator } from './offer-generator.interface.js';
 
+
 export class TSVOfferGenerator implements IOfferGenerator {
   constructor(private readonly mockData: MockServerData) {}
 

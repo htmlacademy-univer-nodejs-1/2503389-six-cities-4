@@ -4,18 +4,24 @@ import { Command } from './command.interface.js';
 import got from 'got';
 import { TSVFileWriter } from '../../shared/libs/file-writer/tsv-file-writer.js';
 
+
 export class GenerateCommand implements Command {
   private initialData!: MockServerData;
 
   private async load(url: string) {
     try {
-      // Исправленный запрос с использованием .body
-      const response = await got.get(url);
-      this.initialData = JSON.parse(response.body);
-    } catch (error: unknown) {
-      throw new Error(`Can't load data from ${url}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // получаем весь response…
+      const response = await got(url);
+      // …и берём из него текстовый body
+      const raw = response.body;
+
+      // парсим этот текст в JSON
+      this.initialData = JSON.parse(raw) as MockServerData;
+    } catch {
+      throw new Error(`Can't load data from ${url}`);
     }
   }
+
 
   private async write(filepath: string, offerCount: number) {
     const tsvOfferGenerator = new TSVOfferGenerator(this.initialData);

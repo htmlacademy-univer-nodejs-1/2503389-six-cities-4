@@ -5,6 +5,9 @@ import { DocumentType, types } from '@typegoose/typegoose';
 import { OfferEntity } from './offer.entity.js';
 import { CreateOfferDto } from './dto/create-offer.dto.js';
 import { Component } from '../../types/component.enum.js';
+import { SortType } from '../../types/index.js';
+import { DEFAULT_OFFER_COUNT } from './offer.constant.js';
+import { UpdateOfferDto } from './dto/update-offer.dto.js';
 
 
 @injectable()
@@ -23,5 +26,81 @@ export class DefaultOfferService implements OfferService {
 
   public async findById(offerId: string): Promise<DocumentType<OfferEntity> | null> {
     return this.offerModel.findById(offerId).exec();
+  }
+
+  public async find(): Promise<DocumentType<OfferEntity>[]> {
+    return this.offerModel
+      .find()
+      .populate(['userId'])
+      .exec();
+  }
+
+  public async deleteById(offerId: string): Promise<DocumentType<OfferEntity> | null> {
+    return this.offerModel
+      .findByIdAndDelete(offerId)
+      .exec();
+  }
+
+  public async updateById(offerId: string, dto: UpdateOfferDto): Promise<DocumentType<OfferEntity> | null> {
+    return this.offerModel
+      .findByIdAndUpdate(offerId, dto, { new: true })
+      .populate(['userId'])
+      .exec();
+  }
+
+  public async findByCategoryId(categoryId: string, count?: number): Promise<DocumentType<OfferEntity>[]> {
+    const limit = count ?? DEFAULT_OFFER_COUNT;
+    return this.offerModel
+      .find({ categories: categoryId }, {}, { limit })
+      .populate(['userId'])
+      .exec();
+  }
+
+  public async exists(documentId: string): Promise<boolean> {
+    return (await this.offerModel
+      .exists({ _id: documentId })) !== null;
+  }
+
+  public async incCommentCount(offerId: string): Promise<DocumentType<OfferEntity> | null> {
+    return this.offerModel
+      .findByIdAndUpdate(offerId, {
+        '$inc': {
+          commentCount: 1,
+        }
+      }).exec();
+  }
+
+  public async findNew(count: number): Promise<DocumentType<OfferEntity>[]> {
+    return this.offerModel
+      .find()
+      .sort({ createdAt: SortType.Down })
+      .limit(count)
+      .populate(['userId'])
+      .exec();
+  }
+
+  public async findDiscussed(count: number): Promise<DocumentType<OfferEntity>[]> {
+    return this.offerModel
+      .find()
+      .sort({ commentCount: SortType.Down })
+      .limit(count)
+      .populate(['userId'])
+      .exec();
+  }
+
+  public async calculateTotalRating(id: string, newRating: number, newCommentsCount: number): Promise<DocumentType<OfferEntity> | null> {
+    const offer = await this.offerModel.findById(id).exec();
+
+    if (!offer) {
+      return null;
+    }
+
+    const totalRating = (offer.rating * (newCommentsCount - 1) + newRating) / newCommentsCount;
+    return this.offerModel
+      .findByIdAndUpdate(id, {
+        rating: totalRating
+      })
+      .populate(['host'])
+      .exec();
   }
 }

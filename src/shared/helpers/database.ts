@@ -5,5 +5,6 @@ export function getMongoURI(
   port: string,
   databaseName: string,
 ): string {
+  // вот эта строка использует ВСЕ параметры
   return `mongodb://${username}:${password}@${host}:${port}/${databaseName}?authSource=admin`;
 }

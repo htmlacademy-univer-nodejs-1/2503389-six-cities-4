@@ -6,14 +6,15 @@ import { UpdateOfferDto } from './dto/update-offer.dto.js';
 
 export interface OfferService {
   create(dto: CreateOfferDto): Promise<DocumentType<OfferEntity>>;
-  findById(offerId: string): Promise<DocumentType<OfferEntity> | null>;
+  findById(id: string): Promise<DocumentType<OfferEntity> | null>;
   find(): Promise<DocumentType<OfferEntity>[]>;
-  deleteById(offerId: string): Promise<DocumentType<OfferEntity> | null>;
-  updateById(offerId: string, dto: UpdateOfferDto): Promise<DocumentType<OfferEntity> | null>;
-  findByCategoryId(categoryId: string, count?: number): Promise<DocumentType<OfferEntity>[]>;
-  incCommentCount(offerId: string): Promise<DocumentType<OfferEntity> | null>;
-  findNew(count: number): Promise<DocumentType<OfferEntity>[]>;
-  findDiscussed(count: number): Promise<DocumentType<OfferEntity>[]>;
-  calculateTotalRating(id: string, newRating: number, newCommentsCount: number): Promise<DocumentType<OfferEntity> | null>;
-  exists(documentId: string): Promise<boolean>;
+  deleteById(id: string): Promise<DocumentType<OfferEntity> | null>;
+  updateById(id: string, dto: UpdateOfferDto): Promise<DocumentType<OfferEntity> | null>;
+  findByCityAndPremium(city: string, isPremium: boolean): Promise<DocumentType<OfferEntity>[] | null>;
+  findByFavorite(isFavorite: boolean): Promise<DocumentType<OfferEntity>[] | null>;
+  addToFavorite(id: string): Promise<DocumentType<OfferEntity> | null>;
+  removeFromFavorite(id: string): Promise<DocumentType<OfferEntity> | null>;
+  incCommentCount(id: string): Promise<DocumentType<OfferEntity> | null>;
+  exists(id: string): Promise<boolean>;
+  updateOfferRating(id: string): Promise<DocumentType<OfferEntity | null> | null>
 }

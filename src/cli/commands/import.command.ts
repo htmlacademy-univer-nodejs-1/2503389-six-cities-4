@@ -15,13 +15,12 @@ import { Offer } from '../../shared/types/index.js';
 import { DEFAULT_DB_PORT, DEFAULT_USER_PASSWORD } from './command.constant.js';
 import { createOffer } from '../../shared/helpers/offer.js';
 
-
 export class ImportCommand implements Command {
   private userService: UserService;
   private offerService: OfferService;
   private databaseClient: DatabaseClient;
   private logger: Logger;
-  private salt: string;
+  private salt!: string;
 
   constructor() {
     this.onImportedLine = this.onImportedLine.bind(this);
@@ -45,10 +44,13 @@ export class ImportCommand implements Command {
   }
 
   private async saveOffer(offer: Offer) {
-    const user = await this.userService.findOrCreate({
-      ...offer.author,
-      password: DEFAULT_USER_PASSWORD,
-    }, this.salt);
+    const user = await this.userService.findOrCreate(
+      {
+        ...offer.author,
+        password: DEFAULT_USER_PASSWORD,
+      },
+      this.salt,
+    );
 
     await this.offerService.create({
       name: user.name,
@@ -67,7 +69,7 @@ export class ImportCommand implements Command {
       facilities: offer.facilities,
       userId: user.id,
       numberComments: offer.numberComments,
-      coordinates: offer.coordinates
+      coordinates: offer.coordinates,
     });
   }
 
@@ -75,8 +77,20 @@ export class ImportCommand implements Command {
     return '--import';
   }
 
-  public async execute(filename: string, login: string, password: string, host: string, dbname: string, salt: string): Promise<void> {
-    const uri = getMongoURI(login, password, host, DEFAULT_DB_PORT, dbname);
+  public async execute(
+    filename: string,
+    host: string,
+    dbname: string,
+    salt: string,
+  ): Promise<void> {
+    // getMongoURI(username, password, host, port, dbname)
+    const uri = getMongoURI(
+      process.env.DB_USER ?? '',
+      process.env.DB_PASSWORD ?? '',
+      host,
+      DEFAULT_DB_PORT,
+      dbname,
+    );
     this.salt = salt;
 
     await this.databaseClient.connect(uri);

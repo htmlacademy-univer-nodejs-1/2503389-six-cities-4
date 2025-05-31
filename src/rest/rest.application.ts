@@ -10,12 +10,11 @@ import { ExceptionFilter } from '../shared/libs/rest/exception-filter/exception-
 import { Controller } from '../shared/libs/rest/controller/controller.interface';
 import CommentController from '../shared/modules/comment/comment.controller';
 
-
 @injectable()
 export class RestApplication {
   private server: Express;
 
-  constructor (
+  constructor(
     @inject(Component.Logger) private readonly logger: Logger,
     @inject(Component.Config) private readonly config: Config<RestSchema>,
     @inject(Component.DatabaseClient) private readonly databaseClient: DatabaseClient,
@@ -32,7 +31,7 @@ export class RestApplication {
       this.config.get('DB_USER'),
       this.config.get('DB_PASSWORD'),
       this.config.get('DB_HOST'),
-      this.config.get('DB_PORT'),
+      String(this.config.get('DB_PORT')),
       this.config.get('DB_NAME'),
     );
 
@@ -52,6 +51,7 @@ export class RestApplication {
 
   private async _initMiddleware() {
     this.server.use(express.json());
+    this.server.use('/upload', express.static(this.config.get('UPLOAD_DIRECTORY') as string));
   }
 
   private async _initExceptionFilters() {
@@ -76,7 +76,7 @@ export class RestApplication {
 
     this.logger.info('Init exception filters');
     await this._initExceptionFilters();
-    this.logger.info('Exception filters initialization compleated');
+    this.logger.info('Exception filters initialization completed');
 
     this.logger.info('Trying to init server');
     await this._initServer();

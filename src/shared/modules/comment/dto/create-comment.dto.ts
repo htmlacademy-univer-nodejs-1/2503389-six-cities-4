@@ -1,14 +1,21 @@
-import { IsMongoId, IsString, Length } from 'class-validator';
-import { CreateCommentMessages } from './create-comment.messages';
+import { IsNumber, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { CommentValidationMessage } from './comment.messages.js';
 
 export class CreateCommentDto {
-  @IsString({ message: CreateCommentMessages.description.invalidFormat })
-  @Length(5, 1024, { message: 'min is 5, max is 1024 '})
-  public description: string;
+  @MinLength(5, {message: CommentValidationMessage.comment.min})
+  @MaxLength(1024, {message: CommentValidationMessage.comment.max})
+  public comment: string;
 
-  @IsMongoId({ message: CreateCommentMessages.offerId.invalidFormat })
-  public offerId: string;
+  @IsNumber(
+    { allowInfinity: false, allowNaN: false, maxDecimalPlaces: 1 },
+    { message: CommentValidationMessage.rating.invalid }
+  )
+  @Min(1, { message: CommentValidationMessage.rating.invalidDecimal })
+  @Max(5, { message: CommentValidationMessage.rating.invalidDecimal })
+  public rating: number;
 
-  @IsMongoId({ message: CreateCommentMessages.userId.invalidFormat })
-  public userId: string;
+  // @IsMongoId()
+  public user: string;
+
+  public offer: string;
 }

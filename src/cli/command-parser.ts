@@ -1,16 +1,14 @@
-type TParsedCommand = Record<string, string[]>;
+type ParsedCommand = [string, string[]] | [null, null]
 
 export class CommandParser {
-  static parse(cliArguments: string[]): TParsedCommand {
-    const parsedCommand: TParsedCommand = {};
-    let currentCommand = '';
+  static parse(cliArguments: string[]): ParsedCommand {
+    let parsedCommand: ParsedCommand = [null, null];
 
-    for(const argument of cliArguments) {
-      if(argument.startsWith('--')) {
-        parsedCommand[argument] = [];
-        currentCommand = argument;
-      } else if(currentCommand && argument) {
-        parsedCommand[currentCommand].push(argument);
+    for (let i = 0; i < cliArguments.length; i++) {
+      const argument = cliArguments[i];
+
+      if (argument.startsWith('--')) {
+        parsedCommand = [argument, cliArguments.slice(i + 1)];
       }
     }
 

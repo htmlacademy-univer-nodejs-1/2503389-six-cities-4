@@ -1,23 +1,25 @@
 import { inject, injectable } from 'inversify';
-import { Request, Response } from 'express';
-import { Logger } from '../../libs/logger/index.js';
-import { Component } from '../../types/index.js';
-import { BaseController } from '../../libs/rest/controller/base-controller.abstract.js';
-import { HttpMethod } from '../../libs/rest/types/http-method.enum.js';
-import { CreateUserRequest } from './create-user-request.type.js';
-import { fillDTO } from '../../helpers/common.js';
-import { UserRdo } from './rdo/user.rdo.js';
-import { HttpError } from '../../libs/rest/errors/http-error.js';
-import { StatusCodes } from 'http-status-codes';
+import {
+  BaseController,
+  HttpError,
+  HttpMethod,
+  PrivateRouteMiddleware,
+  UploadFileMiddleware,
+  ValidateDtoMiddleware,
+} from '../../libs/rest/index.js';
+import { Component } from '../../types/component.enum.js';
 import { UserService } from './user-service.interface.js';
-import { Config } from 'convict';
-import { RestSchema } from '../../libs/config/rest.schema.js';
-import { LoginUserRequest } from './login-user-request.type.js';
-import { ValidateDtoMiddleware } from '../../libs/rest/middleware/validate-dto.middleware.js';
+import { Logger } from '../../libs/logger/logger.interface.js';
+import { StatusCodes } from 'http-status-codes';
+import { CheckUserRequest, LoginUserRequest, RegisterUserRequest } from './user-requests.type.js';
+import { fillDTO } from '../../helpers/fillDTO.js';
+import { UserRdo } from './rdo/user.rdo.js';
+import { Request, Response } from 'express';
 import { CreateUserDto } from './dto/create-user.dto.js';
 import { LoginUserDto } from './dto/login-user.dto.js';
-import { ValidateObjectIdMiddleware } from '../../libs/rest/middleware/validate-objectid.middleware.js';
-import { UploadFileMiddleware } from '../../libs/rest/middleware/upload-file.middleware.js';
+import { Config, RestSchema } from '../../libs/config/index.js';
+import { AuthService } from '../auth/index.js';
+import { LoggedUserRdo } from './rdo/logged-user.rdo.js';
 
 @injectable()
 export class UserController extends BaseController {
@@ -25,15 +27,19 @@ export class UserController extends BaseController {
     @inject(Component.Logger) protected readonly logger: Logger,
     @inject(Component.UserService) private readonly userService: UserService,
     @inject(Component.Config) private readonly configService: Config<RestSchema>,
+    @inject(Component.AuthService) private readonly authService: AuthService
   ) {
     super(logger);
-    this.logger.info('Register routes for UserController…');
+
+    this.logger.info('Регистрация путей для контроллера пользователей');
 
     this.addRoute({
-      path: '/register',
-      method: HttpMethod.Post,
-      handler: this.create,
-      middlewares: [new ValidateDtoMiddleware(CreateUserDto)],
+      path: '/login',
+      method: HttpMethod.Get,
+      handler: this.checkAuth,
+      middlewares: [
+        new PrivateRouteMiddleware()
+      ]
     });
     this.addRoute({
       path: '/login',
@@ -42,62 +48,73 @@ export class UserController extends BaseController {
       middlewares: [new ValidateDtoMiddleware(LoginUserDto)],
     });
     this.addRoute({
-      path: '/:userId/avatar',
+      path: '/logout',
+      method: HttpMethod.Get,
+      handler: this.logout,
+    });
+    this.addRoute({
+      path: '/register',
       method: HttpMethod.Post,
-      handler: this.uploadAvatar,
+      handler: this.register,
+      middlewares: [new ValidateDtoMiddleware(CreateUserDto)],
+    });
+    this.addRoute({
+      path: '/avatar',
+      method: HttpMethod.Post,
+      handler: this.changeAvatar,
       middlewares: [
-        new ValidateObjectIdMiddleware('userId'),
-        new UploadFileMiddleware(this.configService.get('UPLOAD_DIRECTORY') as string, 'avatar'),
+        new UploadFileMiddleware(
+          this.configService.get('UPLOAD_DIRECTORY'),
+          'avatar'
+        ),
       ],
     });
   }
 
-  /**
-   * POST /users/register
-   */
-  public async create(
-    { body }: CreateUserRequest,
-    res: Response,
+  public async checkAuth(
+    { tokenPayload }: CheckUserRequest,
+    res: Response
   ): Promise<void> {
-    const existsUser = await this.userService.findByEmail(body.email);
+    const existingUser = await this.userService.findByEmail(tokenPayload.email);
 
-    if (existsUser) {
-      throw new HttpError(
-        StatusCodes.CONFLICT,
-        `User with email «${body.email}» exists.`,
-        'UserController',
-      );
+    if (!existingUser) {
+      throw new HttpError(StatusCodes.UNAUTHORIZED, 'Unauthorized');
     }
 
-    const result = await this.userService.create(body, this.configService.get('SALT'));
-    this.created(res, fillDTO(UserRdo, result));
+    this.ok(res, fillDTO(UserRdo, existingUser));
   }
 
-  /**
-   * POST /users/login
-   */
   public async login(
     { body }: LoginUserRequest,
-    res: Response,
+    _res: Response,
   ): Promise<void> {
-    const user = await this.userService.verifyUser(body);
-
-    if (!user) {
-      throw new HttpError(
-        StatusCodes.UNAUTHORIZED,
-        'Login or password is incorrect',
-        'UserController',
-      );
-    }
-
-    // TODO: добавить генерацию JWT / сессии
-    this.ok(res, fillDTO(UserRdo, user));
+    const user = await this.authService.verify(body);
+    const token = await this.authService.authenticate(user);
+    const responseData = fillDTO(LoggedUserRdo, {
+      token,
+    });
+    _res.cookie('Authorization', `Bearer ${token}`);
+    this.ok(_res, responseData);
   }
 
-  /**
-   * POST /users/:userId/avatar
-   */
-  public async uploadAvatar(req: Request, res: Response): Promise<void> {
+  public async logout(): Promise<void> {
+    throw new HttpError(StatusCodes.NOT_IMPLEMENTED, 'Метод не реализован');
+  }
+
+  public async register({body}: RegisterUserRequest, _res: Response): Promise<void> {
+    const existingUser = await this.userService.findByEmail(body.email);
+
+    if (existingUser) {
+      throw new HttpError(StatusCodes.BAD_REQUEST, 'Пользователь уже существует');
+    }
+
+    const newUser = await this.userService.create(body, this.configService.get('SALT'));
+    const response = fillDTO(UserRdo, newUser);
+
+    this.created(_res, response);
+  }
+
+  public async changeAvatar(req: Request, res: Response): Promise<void> {
     this.created(res, {
       filepath: req.file?.path,
     });

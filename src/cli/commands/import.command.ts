@@ -1,35 +1,49 @@
 import { Command } from './command.interface.js';
 import { TSVFileReader } from '../../shared/libs/file-reader/index.js';
-import { getErrorMessage, getMongoURI } from '../../shared/helpers/index.js';
-import { UserService } from '../../shared/modules/user/user-service.interface.js';
-import { OfferService } from '../../shared/modules/offer/offer-service.interface.js';
-import { DatabaseClient } from '../../shared/libs/database-client/database-client.interface.js';
-import { Logger } from '../../shared/libs/logger/logger.interface.js';
-import { ConsoleLogger } from '../../shared/libs/logger/console.logger.js';
-import { DefaultOfferService } from '../../shared/modules/offer/default-offer.service.js';
-import { DefaultUserService } from '../../shared/modules/user/default-user.service.js';
-import { MongoDatabaseClient } from '../../shared/libs/database-client/mongo.database-client.js';
-import { OfferModel } from '../../shared/modules/offer/offer.entity.js';
-import { UserModel } from '../../shared/modules/user/user.entity.js';
-import { Offer } from '../../shared/types/index.js';
+// import chalk from 'chalk';
+import {
+  createOffer,
+  getErrorMessage,
+  getMongoURI,
+} from '../../shared/helpers/index.js';
 import { DEFAULT_DB_PORT, DEFAULT_USER_PASSWORD } from './command.constant.js';
-import { createOffer } from '../../shared/helpers/offer.js';
+import { Logger, PinoLogger } from '../../shared/libs/logger/index.js';
+import {
+  DatabaseClient,
+  MongoDatabaseClient,
+} from '../../shared/libs/database-client/index.js';
+import {
+  DefaultUserService,
+  UserModel,
+  UserService,
+} from '../../shared/modules/user/index.js';
+import { Offer } from '../../shared/types/index.js';
+import {
+  DefaultOfferService,
+  OfferModel,
+  OfferService,
+} from '../../shared/modules/offer/index.js';
+import { CommentModel } from '../../shared/modules/comment/index.js';
 
 export class ImportCommand implements Command {
   private userService: UserService;
   private offerService: OfferService;
   private databaseClient: DatabaseClient;
   private logger: Logger;
-  private salt!: string;
+  private salt: string;
 
   constructor() {
     this.onImportedLine = this.onImportedLine.bind(this);
     this.onCompleteImport = this.onCompleteImport.bind(this);
 
-    this.logger = new ConsoleLogger();
-    this.offerService = new DefaultOfferService(this.logger, OfferModel);
+    this.logger = new PinoLogger();
+    this.offerService = new DefaultOfferService(this.logger, OfferModel, CommentModel);
     this.userService = new DefaultUserService(this.logger, UserModel);
     this.databaseClient = new MongoDatabaseClient(this.logger);
+  }
+
+  public getName(): string {
+    return '--import';
   }
 
   private async onImportedLine(line: string, resolve: () => void) {
@@ -39,58 +53,50 @@ export class ImportCommand implements Command {
   }
 
   private onCompleteImport(count: number) {
-    console.info(`${count} rows imported.`);
+    console.info(`${count} строк было загружено.`);
     this.databaseClient.disconnect();
   }
 
   private async saveOffer(offer: Offer) {
     const user = await this.userService.findOrCreate(
       {
-        ...offer.author,
+        ...offer.host,
         password: DEFAULT_USER_PASSWORD,
       },
-      this.salt,
+      this.salt
     );
 
     await this.offerService.create({
-      name: user.name,
+      title: offer.title,
       description: offer.description,
-      datePublished: offer.datePublished,
+      publicationDate: offer.publicationDate,
       city: offer.city,
-      previewImagePath: offer.previewImagePath,
-      photosPaths: offer.photosPaths,
+      previewImage: offer.previewImage,
+      images: offer.images,
       isPremium: offer.isPremium,
+      // @ts-ignore
       isFavorite: offer.isFavorite,
       rating: offer.rating,
-      houseType: offer.houseType,
-      numberRooms: offer.numberRooms,
-      numberGuests: offer.numberGuests,
-      rentPrice: offer.rentPrice,
-      facilities: offer.facilities,
-      userId: user.id,
-      numberComments: offer.numberComments,
-      coordinates: offer.coordinates,
+      price: offer.price,
+      type: offer.type,
+      bedrooms: offer.bedrooms,
+      maxAdults: offer.maxAdults,
+      goods: offer.goods,
+      latitude: offer.latitude,
+      host: user.id,
+      longitude: offer.longitude
     });
-  }
-
-  public getName(): string {
-    return '--import';
   }
 
   public async execute(
     filename: string,
+    login: string,
+    password: string,
     host: string,
     dbname: string,
-    salt: string,
+    salt: string
   ): Promise<void> {
-    // getMongoURI(username, password, host, port, dbname)
-    const uri = getMongoURI(
-      process.env.DB_USER ?? '',
-      process.env.DB_PASSWORD ?? '',
-      host,
-      DEFAULT_DB_PORT,
-      dbname,
-    );
+    const uri = getMongoURI(login, password, host, DEFAULT_DB_PORT, dbname);
     this.salt = salt;
 
     await this.databaseClient.connect(uri);
@@ -99,7 +105,6 @@ export class ImportCommand implements Command {
 
     fileReader.on('line', this.onImportedLine);
     fileReader.on('end', this.onCompleteImport);
-
     try {
       await fileReader.read();
     } catch (error) {

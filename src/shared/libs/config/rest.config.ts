@@ -2,31 +2,31 @@ import { config } from 'dotenv';
 import { Logger } from '../logger/index.js';
 import { Config } from './config.interface.js';
 import { RestSchema, configRestSchema } from './rest.schema.js';
-import { inject, injectable } from 'inversify';
-import { Component } from '../../types/component.enum.js';
-
+import { injectable } from 'inversify';
+import { inject } from 'inversify';
+import { Component } from '../../types/index.js';
 
 @injectable()
 export class RestConfig implements Config<RestSchema> {
   private readonly config: RestSchema;
 
-  constructor(
-    @inject(Component.Logger) private readonly logger: Logger
-  ) {
-    const pardesOutput = config();
+  constructor(@inject(Component.Logger) private readonly logger: Logger) {
+    const parsedOutput = config();
 
-    if (pardesOutput.error) {
-      throw new Error('Can\'t read .env file. Perhaps the file does not exists.');
+    if (parsedOutput.error || !parsedOutput.parsed) {
+      throw new Error(
+        'Не удалось найти файл окружения (.env). Возможно, файл не существует.'
+      );
     }
 
     configRestSchema.load({});
     configRestSchema.validate({ allowed: 'strict', output: this.logger.info });
 
     this.config = configRestSchema.getProperties();
-    this.logger.info('.env file found and successfully parsed!');
+    this.logger.info('Файл окружения был найден и успешно прочитан');
   }
 
-  public get<T extends keyof RestSchema>(key: T): RestSchema[T] {
+  public get<K extends keyof RestSchema>(key: K) {
     return this.config[key];
   }
 }

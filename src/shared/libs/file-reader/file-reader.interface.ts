@@ -1,3 +1,3 @@
-export interface IFileReader {
+export interface FileReader {
   read(): void;
 }

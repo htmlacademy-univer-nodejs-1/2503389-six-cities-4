@@ -1,79 +1,137 @@
-import { IsArray, IsBoolean, IsEnum, IsMongoId, IsObject, IsOptional, Max, MaxLength, Min, MinLength } from 'class-validator';
-import { Coordinates, HouseType } from '../../../types';
-import { City } from '../../../types/city.enum';
-import { Facilities } from '../../../types/facilities.enum';
-import { CreateOfferValidationMessage } from './create-offer.messages';
-
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsBoolean,
+  IsDateString,
+  IsEnum,
+  IsLatitude,
+  IsLongitude,
+  IsMongoId,
+  IsNumber,
+  IsOptional,
+  IsUrl,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
+import { City, OfferGood, OfferType } from '../../../types/index.js';
+import { OfferValidationMessage } from './offer.messages.js';
 
 export class UpdateOfferDto {
+  @MinLength(10, { message: OfferValidationMessage.title.minLength })
+  @MaxLength(100, { message: OfferValidationMessage.title.maxLength })
   @IsOptional()
-  @MinLength(10, { message: CreateOfferValidationMessage.name.minLength })
-  @MaxLength(100, { message: CreateOfferValidationMessage.name.maxLength })
-  public name?: string;
+  public title?: string;
 
+  @MinLength(20, {
+    message: OfferValidationMessage.description.minLength,
+  })
+  @MaxLength(1024, {
+    message: OfferValidationMessage.description.maxLength,
+  })
   @IsOptional()
-  @MinLength(20, { message: CreateOfferValidationMessage.description.minLength })
-  @MaxLength(1024, { message: CreateOfferValidationMessage.description.maxLength })
   public description?: string;
 
+  @IsDateString(
+    {},
+    { message: OfferValidationMessage.postDate.invalidFormat }
+  )
   @IsOptional()
-  public datePublished?: Date;
+  public publicationDate?: Date;
 
+  @IsEnum(City, { message: OfferValidationMessage.city.invalid })
   @IsOptional()
-  @IsEnum(City, { message: CreateOfferValidationMessage.city.invalidFormat })
   public city?: City;
 
+  @IsUrl({}, { message: OfferValidationMessage.previewImage.invalid })
   @IsOptional()
-  @MaxLength(256, { message: CreateOfferValidationMessage.previewImagePath.maxLength })
-  public previewImagePath?: string;
+  public previewImage?: string;
 
+  @ArrayMinSize(6, {
+    message: OfferValidationMessage.images.invalidLength,
+  })
+  @ArrayMaxSize(6, {
+    message: OfferValidationMessage.images.invalidLength,
+  })
+  @IsUrl(
+    {},
+    {
+      each: true,
+      message: OfferValidationMessage.images.someImageInvalid,
+    }
+  )
   @IsOptional()
-  @IsArray({ message: CreateOfferValidationMessage.photosPaths.invalidFormat })
-  public photosPaths?: string[];
+  public images?: string[];
 
+  @IsBoolean({ message: OfferValidationMessage.isPremium.invalid })
   @IsOptional()
-  @IsBoolean({ message: CreateOfferValidationMessage.isPremium.invalid })
   public isPremium?: boolean;
 
+  @IsBoolean({ message: OfferValidationMessage.isFavorite.invalid })
   @IsOptional()
-  @IsBoolean({message: CreateOfferValidationMessage.isFavorite.invalidFormat})
   public isFavorite?: boolean;
 
-  @IsOptional()
-  public rating?: number;
+  // @IsNumber(
+  //   { allowInfinity: false, allowNaN: false, maxDecimalPlaces: 1 },
+  //   { message: OfferValidationMessage.rating.invalid }
+  // )
+  // @Min(1, { message: OfferValidationMessage.rating.invalidDecimal })
+  // @Max(5, { message: OfferValidationMessage.rating.invalidDecimal })
+  // @IsOptional()
+  // public rating?: number;
 
+  @IsNumber(
+    { allowInfinity: false, allowNaN: false, maxDecimalPlaces: 1 },
+    { message: OfferValidationMessage.price.invalid }
+  )
+  @Min(100, { message: OfferValidationMessage.price.invalidDecimal })
+  @Max(100000, { message: OfferValidationMessage.price.invalidDecimal })
   @IsOptional()
-  @IsEnum(HouseType, {message: CreateOfferValidationMessage.houseType.invalidFormat})
-  public houseType?: HouseType;
+  public price?: number;
 
+  @IsEnum(OfferType, { message: OfferValidationMessage.type.invalid })
   @IsOptional()
-  @Min(1, { message: CreateOfferValidationMessage.numberRooms.min })
-  @Max(8, { message: CreateOfferValidationMessage.numberRooms.max })
-  public numberRooms?: number;
+  public type?: OfferType;
 
+  @IsNumber(
+    { allowInfinity: false, allowNaN: false, maxDecimalPlaces: 1 },
+    { message: OfferValidationMessage.bedrooms.invalid }
+  )
+  @Min(1, { message: OfferValidationMessage.bedrooms.invalidDecimal })
+  @Max(8, {
+    message: OfferValidationMessage.bedrooms.invalidDecimal,
+  })
   @IsOptional()
-  @Min(1, { message: CreateOfferValidationMessage.numberGuests.min })
-  @Max(10, { message: CreateOfferValidationMessage.numberGuests.max })
-  public numberGuests?: number;
+  public bedrooms?: number;
 
+  @IsNumber(
+    { allowInfinity: false, allowNaN: false, maxDecimalPlaces: 1 },
+    { message: OfferValidationMessage.maxAdults.invalid }
+  )
+  @Min(1, { message: OfferValidationMessage.maxAdults.invalidDecimal })
+  @Max(10, {
+    message: OfferValidationMessage.maxAdults.invalidDecimal,
+  })
   @IsOptional()
-  @Min(100, { message: CreateOfferValidationMessage.rentPrice.min })
-  @Max(100000, { message: CreateOfferValidationMessage.rentPrice.max })
-  public rentPrice?: number;
+  public maxAdults?: number;
 
+  @IsEnum(OfferGood, {
+    each: true,
+    message: OfferValidationMessage.goods.invalid,
+  })
   @IsOptional()
-  @IsArray({ message: CreateOfferValidationMessage.facilities.invalidFormat })
-  @IsEnum(Facilities, {message: CreateOfferValidationMessage.facilities.invalidElementFormat})
-  public facilities?: Facilities[];
+  public goods?: OfferGood[];
 
+  @IsMongoId({})
   @IsOptional()
-  @IsMongoId({ message: CreateOfferValidationMessage.userId.invalidId })
-  public userId?: string;
+  public host?: string;
 
+  @IsLatitude({ message: OfferValidationMessage.latitude.invalid })
   @IsOptional()
-  public numberComments?: number;
+  public latitude?: number;
 
+  @IsLongitude({ message: OfferValidationMessage.longitude.invalid })
   @IsOptional()
-  @IsObject({ message: CreateOfferValidationMessage.coordinates.invalidFormat })
-  public coordinates?: Coordinates;
+  public longitude?: number;
 }

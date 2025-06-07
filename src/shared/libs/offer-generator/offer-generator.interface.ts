@@ -1,3 +1,3 @@
-export interface IOfferGenerator {
+export interface OfferGenerator {
   generate(): string;
 }

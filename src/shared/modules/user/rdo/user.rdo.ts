@@ -1,8 +1,11 @@
-import { Expose } from 'class-transformer';
+import { Expose, Transform } from 'class-transformer';
 import { UserType } from '../../../types/index.js';
 
-
 export class UserRdo {
+  @Expose({name: '_id'})
+  @Transform(({obj}) => obj._id.toString())
+  public id: string;
+
   @Expose()
   public name: string;
 
@@ -10,10 +13,7 @@ export class UserRdo {
   public email: string;
 
   @Expose()
-  public avatarPath: string;
-
-  @Expose()
-  public password: string;
+  public avatarUrl: string;
 
   @Expose()
   public type: UserType;

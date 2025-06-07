@@ -1,3 +1,3 @@
-export interface Config<U> {
-  get<T extends keyof U>(key: T): U[T];
+export interface Config<O> {
+  get<K extends keyof O>(key: K): O[K];
 }

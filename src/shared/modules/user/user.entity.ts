@@ -1,48 +1,51 @@
-import { User, UserType } from '../../types/index.js';
-import { getModelForClass, prop, defaultClasses, modelOptions } from '@typegoose/typegoose';
+import { defaultClasses, getModelForClass, modelOptions, prop } from '@typegoose/typegoose';
+import { UserType } from '../../types/index.js';
 import { createSHA256 } from '../../helpers/index.js';
+import { CreateUserDto } from './dto/create-user.dto.js';
 
 export interface UserEntity extends defaultClasses.Base {}
 
 @modelOptions({
   schemaOptions: {
-    collection: 'users',
-  },
+    collection: 'users'
+  }
 })
-export class UserEntity extends defaultClasses.TimeStamps implements User {
-  @prop({ type: String, required: true, default: '' })
-  public name!: string;
+export class UserEntity extends defaultClasses.TimeStamps {
+  @prop({ required: true, type: String })
+  public name: string;
 
-  @prop({ type: String, unique: true, required: true })
-  public email!: string;
+  @prop({ required: true, type: String, unique: true })
+  public email: string;
 
-  @prop({ type: String, required: false, default: '' })
-  public avatarPath!: string;
+  @prop({ required: false, type: String, default: () => 'https://api.multiavatar.com/kathrin.svg' })
+  public avatarUrl?: string;
 
-  @prop({ type: String, required: false, default: UserType.Regular })
-  public type!: UserType;
+  @prop({ required: true, type: String })
+  public password: string;
 
-  @prop({ type: String, required: true, default: '' })
-  private password!: string;
+  @prop({required: true, type: String, enum: UserType})
+  public type: UserType;
 
-  constructor(userData: User) {
+  constructor(userData: CreateUserDto) {
     super();
+
     this.name = userData.name;
     this.email = userData.email;
-    this.avatarPath = userData.avatarPath;
+    this.avatarUrl = userData.avatarUrl;
     this.type = userData.type;
   }
 
-  public setPassword(password: string, salt: string): void {
+  public setPassword(password: string, salt: string) {
     this.password = createSHA256(password, salt);
   }
 
-  public verifyPassword(password: string): boolean {
-    return this.password === createSHA256(password, process.env.SALT ?? '');
+  public getPassword() {
+    return this.password;
   }
 
-  public getPassword(): string {
-    return this.password;
+  public verifyPassword(password: string, salt: string) {
+    const hashPassword = createSHA256(password, salt);
+    return hashPassword === this.password;
   }
 }
 

@@ -1,38 +1,71 @@
 import dayjs from 'dayjs';
-import { generateRandomValue, getRandomItem, getRandomItems } from '../../helpers/common.js';
-import { MockServerData } from '../../types/index.js';
-import { IOfferGenerator } from './offer-generator.interface.js';
+import { generateRandomValue, getRandomItem, getRandomItems } from '../../helpers/index.js';
+import { MockServerData, OfferType, UserType } from '../../types/index.js';
+import { OfferGenerator } from './offer-generator.interface.js';
 
+const MIN_RATING = 1;
+const MAX_RATING = 5;
 
-export class TSVOfferGenerator implements IOfferGenerator {
+const MIN_ROOMS_COUNT = 1;
+const MAX_ROOMS_COUNT = 8;
+
+const MIN_GUESTS_COUNT = 1;
+const MAX_GUESTS_COUNT = 10;
+
+const MIN_PRICE = 100;
+const MAX_PRICE = 100000;
+
+const FIRST_WEEK_DAY = 1;
+const LAST_WEEK_DAY = 7;
+
+export class TSVOfferGenerator implements OfferGenerator {
   constructor(private readonly mockData: MockServerData) {}
 
-  generate(): string {
-    const title = getRandomItem<string>(this.mockData.titles);
-    const description = getRandomItem<string>(this.mockData.descriptions);
-    const postDate = dayjs().subtract(generateRandomValue(1, 14), 'day').toISOString();
+  public generate(): string {
+    const name = getRandomItem<string>(this.mockData.name);
+    const description = getRandomItem<string>(this.mockData.description);
+    const publicationDate = dayjs()
+      .subtract(generateRandomValue(FIRST_WEEK_DAY, LAST_WEEK_DAY), 'day')
+      .toISOString();
     const city = getRandomItem<string>(this.mockData.cities);
-    const previewPhoto = getRandomItem<string>(this.mockData.previewPhotos);
-    const photos = getRandomItems<string>(this.mockData.photos, 6).join(';');
-    const isPremium = getRandomItem<boolean>([true, false]).toString();
-    const isFavorite = getRandomItem<boolean>([true, false]).toString();
-    const rating = generateRandomValue(1, 5).toString();
-    const type = getRandomItem<string>(this.mockData.types);
-    const roomCount = generateRandomValue(1, 8).toString();
-    const guestCount = generateRandomValue(1, 10).toString();
-    const price = generateRandomValue(100, 100000).toString();
-    const facilities = getRandomItems<string>(this.mockData.facilities).join(';');
-    const author = getRandomItem<string>(this.mockData.authorNames);
-    const email = getRandomItem<string>(this.mockData.authorEmails);
-    const avatarPath = getRandomItem<string>(this.mockData.authorAvatars);
-    const authorType = getRandomItem<string>(this.mockData.authorTypes);
-    const numberComments = generateRandomValue(0, 30);
-    const coordinates = getRandomItem<string>(this.mockData.coordinates);
+    const previewImage = getRandomItem<string>(this.mockData.previewImages);
+    const images = getRandomItems<string>(this.mockData.images).join(',');
+    const isPremium = getRandomItem<boolean>([true, false]);
+    const isFavorite = getRandomItem<boolean>([true, false]);
+    const rating = generateRandomValue(MIN_RATING, MAX_RATING, 1);
+    const type = getRandomItem<OfferType>(Object.values(OfferType));
+    const roomsCount = generateRandomValue(MIN_ROOMS_COUNT, MAX_ROOMS_COUNT);
+    const guestsCount = generateRandomValue(MIN_GUESTS_COUNT, MAX_GUESTS_COUNT);
+    const price = generateRandomValue(MIN_PRICE, MAX_PRICE);
+    const features = getRandomItems(this.mockData.features).join(',');
+
+    const userName = getRandomItem(this.mockData.authors);
+    const userEmail = getRandomItem(this.mockData.emails);
+    const userAvatar = getRandomItem(this.mockData.avatars);
+    const userPassword = getRandomItem(this.mockData.passwords);
+    const userType = getRandomItem(Object.values(UserType));
+
+    const commentsCount = generateRandomValue(1, 10);
+    const coordinates = getRandomItem(this.mockData.coordinates);
 
     return [
-      title, description, postDate, city, previewPhoto, photos, isPremium,
-      isFavorite, rating, type, roomCount, guestCount, price, facilities,
-      author, email, avatarPath, authorType, numberComments, coordinates
+      name,
+      description,
+      publicationDate,
+      city,
+      previewImage,
+      images,
+      isPremium,
+      isFavorite,
+      rating,
+      type,
+      roomsCount,
+      guestsCount,
+      price,
+      features,
+      [userName, userEmail, userAvatar, userPassword, userType].join(','),
+      commentsCount,
+      coordinates,
     ].join('\t');
   }
 }

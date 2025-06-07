@@ -1,47 +1,80 @@
-import { inject, injectable } from 'inversify';
-import { Logger } from '../../libs/logger/index.js';
-import { Component } from '../../types/index.js';
-import { UserModel, UserEntity } from './user.entity.js';
 import { UserService } from './user-service.interface.js';
+import { DocumentType, types } from '@typegoose/typegoose';
+import { UserEntity } from './user.entity.js';
 import { CreateUserDto } from './dto/create-user.dto.js';
-import { LoginUserDto } from './dto/login-user.dto.js';
+import { inject, injectable } from 'inversify';
+import { Component } from '../../types/index.js';
+import { Logger } from '../../libs/logger/index.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
-import { DocumentType } from '@typegoose/typegoose';
+import { DEFAULT_AVATAR_FILE_NAME } from './user.constant.js';
 
 @injectable()
 export class DefaultUserService implements UserService {
   constructor(
     @inject(Component.Logger) private readonly logger: Logger,
-    @inject(UserModel) private readonly userModel: typeof UserModel,
+    @inject(Component.UserModel)
+    private readonly userModel: types.ModelType<UserEntity>
   ) {}
 
-  public async create(dto: CreateUserDto, salt: string): Promise<DocumentType<UserEntity>> {
-    const user = new this.userModel(dto);
+  public async create(
+    dto: CreateUserDto,
+    salt: string
+  ): Promise<DocumentType<UserEntity>> {
+    const user = new UserEntity({...dto, avatarUrl: dto.avatarUrl || DEFAULT_AVATAR_FILE_NAME });
     user.setPassword(dto.password, salt);
-    const saved = await user.save();
-    this.logger.info(`Created user ${saved.email}`);
-    return saved as DocumentType<UserEntity>;
+
+    const result = await this.userModel.create(user);
+    this.logger.info(`Создан повый пользователь ${result}`);
+
+    return result;
   }
 
-  public async findByEmail(email: string): Promise<DocumentType<UserEntity> | null> {
-    return this.userModel.findOne({ email }).exec() as Promise<DocumentType<UserEntity> | null>;
+  public findById(id: string): Promise<DocumentType<UserEntity> | null> {
+    return this.userModel.findOne({ id }).exec();
   }
 
-  public async findOrCreate(dto: CreateUserDto, salt: string): Promise<DocumentType<UserEntity>> {
-    const existing = await this.findByEmail(dto.email);
-    return existing ?? (await this.create(dto, salt));
+  public findByEmail(email: string): Promise<DocumentType<UserEntity> | null> {
+    return this.userModel.findOne({ email }).exec();
   }
 
-  public async updateById(userId: string, dto: UpdateUserDto): Promise<DocumentType<UserEntity> | null> {
-    return this.userModel.findByIdAndUpdate(userId, dto, { new: true }).exec() as Promise<DocumentType<UserEntity> | null>;
-  }
+  public async findOrCreate(
+    dto: CreateUserDto,
+    salt: string
+  ): Promise<DocumentType<UserEntity>> {
+    const existedUser = await this.findByEmail(dto.email);
 
-  public async verifyUser(dto: LoginUserDto): Promise<DocumentType<UserEntity> | null> {
-    
-    const user = await this.findByEmail(dto.email);
-    if (!user) {
-      return null;
+    if (existedUser) {
+      return existedUser;
     }
-    return user.verifyPassword(dto.password) ? user : null;
+
+    return this.create(dto, salt);
+  }
+
+  public async updateById(
+    id: string,
+    dto: UpdateUserDto
+  ): Promise<DocumentType<UserEntity> | null> {
+    return this.userModel.findByIdAndUpdate(id, dto, { new: true }).exec();
+  }
+
+  public async updateByEmail(
+    email: string,
+    dto: UpdateUserDto
+  ): Promise<DocumentType<UserEntity> | null> {
+    return this.userModel
+      .findOneAndUpdate({ email }, dto, { new: true })
+      .exec();
+  }
+
+  public async deleteById(
+    id: string
+  ): Promise<DocumentType<UserEntity> | null> {
+    return this.userModel.findByIdAndDelete(id).exec();
+  }
+
+  public async deleteByEmail(
+    email: string
+  ): Promise<DocumentType<UserEntity> | null> {
+    return this.userModel.findOneAndDelete({ email }).exec();
   }
 }

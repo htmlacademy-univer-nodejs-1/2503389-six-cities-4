@@ -1,33 +1,97 @@
+import { types } from '@typegoose/typegoose';
+import { Component } from '../../types/index.js';
 import { CommentService } from './comment-service.interface.js';
-import { CreateCommentDto } from './dto/create-comment.dto.js';
-import { DocumentType, types } from '@typegoose/typegoose';
-import { CommentEntity } from './comment.entity.js';
+import { Logger } from '../../libs/logger/index.js';
 import { inject, injectable } from 'inversify';
-import { Component } from '../../types/';
-
+import { CommentEntity } from './comment.entity.js';
+import { OfferService } from '../offer/index.js';
+import { CreateCommentDto } from './dto/create-comment.dto.js';
+import { UpdateCommentDto } from './dto/update-comment.dto.js';
+import { DEFAULT_OFFER_COMMENTS_COUNT } from './comment.constant.js';
 
 @injectable()
 export class DefaultCommentService implements CommentService {
   constructor(
-    @inject(Component.CommentModel) private readonly commentModel: types.ModelType<CommentEntity>
-  ) { }
+    @inject(Component.Logger) private readonly logger: Logger,
+    @inject(Component.CommentModel)
+    private readonly commentModel: types.ModelType<CommentEntity>,
+    @inject(Component.OfferService)
+    private readonly offerService: OfferService
+  ) {}
 
-  public async create(dto: CreateCommentDto): Promise<DocumentType<CommentEntity>> {
-    const comment = await this.commentModel.create(dto);
-    return comment.populate('userId');
+  public async create(
+    dto: CreateCommentDto
+  ): Promise<types.DocumentType<CommentEntity>> {
+    const comment = await (
+      await this.commentModel.create(dto)
+    ).populate(['user', 'offer']);
+    this.logger.info(`Создан новый комментарий: ${dto.comment}`);
+
+    await this.offerService.incCommentCount(comment.offer.id);
+    await this.offerService.updateRating(comment.offer.id);
+
+    return comment;
   }
 
-  public async findByOfferId(offerId: string): Promise<DocumentType<CommentEntity>[]> {
+  public async findById(
+    commentId: string
+  ): Promise<types.DocumentType<CommentEntity> | null> {
     return this.commentModel
-      .find({ offerId })
-      .populate('userId');
+      .findById(commentId)
+      .populate(['user', 'offer'])
+      .exec();
+  }
+
+  public async findByAuthorId(
+    authorId: string
+  ): Promise<types.DocumentType<CommentEntity>[] | null> {
+    return this.commentModel
+      .find({ user: authorId })
+      .populate(['user', 'offer'])
+      .exec();
+  }
+
+  public async findByOfferId(
+    offerId: string
+  ): Promise<types.DocumentType<CommentEntity>[] | null> {
+    return this.commentModel
+      .find({ offer: offerId })
+      .limit(DEFAULT_OFFER_COMMENTS_COUNT)
+      .populate(['user', 'offer'])
+      .exec();
+  }
+
+  public async updateById(
+    commentId: string,
+    dto: UpdateCommentDto
+  ): Promise<types.DocumentType<CommentEntity> | null> {
+    return this.commentModel
+      .findByIdAndUpdate(commentId, dto, { new: true })
+      .populate(['user', 'offer'])
+      .exec();
+  }
+
+  public async deleteById(commentId: string): Promise<types.DocumentType<CommentEntity> | null> {
+    const comment = await this.commentModel
+      .findByIdAndDelete(commentId, { new: true })
+      .populate(['user', 'offer'])
+      .exec();
+
+    if (!comment) {
+      return null;
+    }
+
+    await this.offerService.decCommentCount(comment.offer.id);
+    await this.offerService.updateRating(comment.offer.id);
+
+    return comment;
   }
 
   public async deleteByOfferId(offerId: string): Promise<number> {
-    const result = await this.commentModel
-      .deleteMany({ offerId })
+    const comments = await this.commentModel
+      .deleteMany({offer: offerId})
       .exec();
 
-    return result.deletedCount;
+    return comments.deletedCount;
   }
 }

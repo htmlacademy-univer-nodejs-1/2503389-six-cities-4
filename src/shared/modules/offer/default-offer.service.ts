@@ -1,119 +1,190 @@
-import { inject, injectable } from 'inversify';
-import { OfferService } from './offer-service.interface.js';
-import { Logger } from '../../libs/logger/index.js';
 import { DocumentType, types } from '@typegoose/typegoose';
-import { OfferEntity } from './offer.entity.js';
-import { CreateOfferDto } from './dto/create-offer.dto.js';
-import { Component } from '../../types/component.enum.js';
-import { SortType } from '../../types/index.js';
-import { DEFAULT_OFFER_COUNT, PREMIUM_OFFER_COUNT } from './offer.constant.js';
+import { Component, SortType } from '../../types/index.js';
+import { inject, injectable } from 'inversify';
 import { UpdateOfferDto } from './dto/update-offer.dto.js';
-
+import { CreateOfferDto } from './dto/create-offer.dto.js';
+import { CommentEntity } from '../comment/index.js';
+import { OfferService } from './offer-service.interface.js';
+import { OfferEntity } from './offer.entity.js';
+import { Logger } from '../../libs/logger/index.js';
+import {
+  DEFAULT_OFFER_COUNT,
+  DEFAULT_PREMIUM_OFFER_COUNT,
+} from './offer.constant.js';
+import mongoose from 'mongoose';
 
 @injectable()
 export class DefaultOfferService implements OfferService {
   constructor(
     @inject(Component.Logger) private readonly logger: Logger,
-    @inject(Component.OfferModel) private readonly offerModel: types.ModelType<OfferEntity>
+    @inject(Component.OfferModel)
+    private readonly offerModel: types.ModelType<OfferEntity>,
+    @inject(Component.CommentModel)
+    private readonly commentModel: types.ModelType<CommentEntity>
   ) {}
 
   public async create(dto: CreateOfferDto): Promise<DocumentType<OfferEntity>> {
-    const result = await this.offerModel.create(dto);
-    this.logger.info(`New offer created: ${dto.name}`);
+    const result = (await this.offerModel.create(dto)).populate(['host']);
+    this.logger.info(`Создан новый оффер: ${dto.title}`);
 
     return result;
   }
 
-  public async findById(offerId: string): Promise<DocumentType<OfferEntity> | null> {
-    return this.offerModel.findById(offerId).exec();
+  public async findById(
+    offerId: string
+  ): Promise<DocumentType<OfferEntity> | null> {
+    return this.offerModel.findById(offerId).populate(['host']).exec();
   }
 
-  public async find(): Promise<DocumentType<OfferEntity>[]> {
+  public async find(
+    limit?: number,
+    userId?: string
+  ): Promise<DocumentType<OfferEntity>[]> {
     return this.offerModel
-      .find()
-      .populate(['userId'])
-      .exec();
-  }
-
-  public async deleteById(offerId: string): Promise<DocumentType<OfferEntity> | null> {
-    return this.offerModel
-      .findByIdAndDelete(offerId)
-      .exec();
-  }
-
-  public async updateById(offerId: string, dto: UpdateOfferDto): Promise<DocumentType<OfferEntity> | null> {
-    return this.offerModel
-      .findByIdAndUpdate(offerId, dto, { new: true })
-      .populate(['userId'])
-      .exec();
-  }
-
-  public async exists(documentId: string): Promise<boolean> {
-    return (await this.offerModel
-      .exists({ _id: documentId })) !== null;
-  }
-
-  public async incCommentCount(offerId: string): Promise<DocumentType<OfferEntity> | null> {
-    return this.offerModel
-      .findByIdAndUpdate(offerId, {
-        '$inc': {
-          commentCount: 1,
-        }
-      }).exec();
-  }
-
-  public async findByCityAndPremium(city: string, isPremium: boolean, count?: number, offset?: number): Promise<DocumentType<OfferEntity>[] | null> {
-    const limit = count ?? PREMIUM_OFFER_COUNT;
-    const skip = offset ?? 0;
-    return this.offerModel
-      .find({ city: city, isPremium: isPremium })
-      .sort({ createdAt: SortType.Down })
-      .skip(skip)
-      .limit(limit)
-      .populate('userId')
-      .exec();
-  }
-
-  public async findByFavorite(isFavorite: boolean, count?: number, offset?: number): Promise<DocumentType<OfferEntity>[] | null> {
-    const limit = count ?? DEFAULT_OFFER_COUNT;
-    const skip = offset ?? 0;
-    return this.offerModel
-      .find({ isFavorite: isFavorite })
-      .skip(skip)
-      .limit(limit)
-      .populate('userId')
-      .exec();
-  }
-
-  public async addToFavorite(id: string): Promise<DocumentType<OfferEntity> | null> {
-    return this.offerModel
-      .findByIdAndUpdate(id, {isFavorite: true}, {new: true})
-      .exec();
-  }
-
-  public async removeFromFavorite(id: string): Promise<DocumentType<OfferEntity> | null> {
-    return this.offerModel
-      .findByIdAndUpdate(id, {isFavorite: false}, {new: true})
-      .exec();
-  }
-
-  public async updateOfferRating(id: string): Promise<DocumentType<OfferEntity | null> | null> {
-    const rating = await this.offerModel
       .aggregate([
         {
           $lookup: {
-            from: 'comments',
+            let: {
+              offerId: '$_id',
+            },
+            from: 'favorites',
+            as: 'favs',
             pipeline: [
-              {$match: {offerId: id}}, {$project: {rating: 1}},
-              {$group: {_id: null, avg: {'$avg': '$rating'}}}
-            ], as: 'avg'
+              {
+                $match: {
+                  $expr: {
+                    $eq: ['$offer', '$$offerId'],
+                  },
+                },
+              },
+              {
+                $match: {
+                  $expr: {
+                    $eq: ['$user', new mongoose.Types.ObjectId(userId)],
+                  },
+                },
+              },
+            ],
           },
         },
-      ]).exec();
+        {
+          $lookup: {
+            from: 'users',
+            as: 'host',
+            localField: 'host',
+            foreignField: '_id',
+          },
+        },
+        { $unwind: { path: '$favs', preserveNullAndEmptyArrays: true } },
+        { $unwind: { path: '$host', preserveNullAndEmptyArrays: true } },
+        {
+          $set: {
+            isFavorite: {
+              $cond: {
+                if: {
+                  $lte: ['$favs', null],
+                },
+                then: false,
+                else: true,
+              },
+            },
+          },
+        },
+        { $project: { favs: 0 } },
+        { $limit: limit || DEFAULT_OFFER_COUNT },
+      ])
+      .sort({ publicationDate: SortType.Down })
+      .exec();
+  }
+
+  public async deleteById(
+    offerId: string
+  ): Promise<DocumentType<OfferEntity> | null> {
+    return this.offerModel.findByIdAndDelete(offerId).populate(['host']).exec();
+  }
+
+  public async updateById(
+    offerId: string,
+    dto: UpdateOfferDto
+  ): Promise<DocumentType<OfferEntity> | null> {
+    return this.offerModel
+      .findByIdAndUpdate(offerId, dto, { new: true })
+      .populate(['host'])
+      .exec();
+  }
+
+  public async exists(offerId: string): Promise<boolean> {
+    return (await this.offerModel.exists({ _id: offerId })) !== null;
+  }
+
+  public async incCommentCount(
+    offerId: string
+  ): Promise<DocumentType<OfferEntity> | null> {
+    return this.offerModel
+      .findByIdAndUpdate(offerId, {
+        $inc: {
+          commentsCount: 1,
+        },
+      })
+      .populate(['host'])
+      .exec();
+  }
+
+  public async decCommentCount(
+    offerId: string
+  ): Promise<DocumentType<OfferEntity> | null> {
+    return this.offerModel
+      .findByIdAndUpdate(offerId, {
+        $inc: {
+          commentsCount: -1,
+        },
+      })
+      .populate(['host'])
+      .exec();
+  }
+
+  public async updateRating(
+    offerId: string
+  ): Promise<DocumentType<OfferEntity> | null> {
+    const rating = (await this.commentModel.find({ offer: offerId }))
+      ?.reduce(
+        (avg, comment, _, { length }) => avg + comment.rating / length,
+        0
+      )
+      .toFixed(1);
+
+    if (!rating) {
+      return null;
+    }
+
+    return await this.offerModel.findByIdAndUpdate(offerId, { rating });
+  }
+
+  public async findFavorite(): Promise<DocumentType<OfferEntity>[]> {
+    return this.offerModel.find().populate(['host']).exec();
+  }
+
+  public async findPremium(
+    city?: string,
+    limit?: number
+  ): Promise<DocumentType<OfferEntity>[]> {
+    const query: {
+      isPremium: true;
+      limit?: number;
+      city?: string;
+    } = { isPremium: true };
+    if (city) {
+      query.city = city;
+    }
+    if (limit) {
+      query.limit = limit;
+    }
 
     return this.offerModel
-      .findByIdAndUpdate(id, {rating: rating[0]}, {new: true})
-      .populate('userId')
+      .find(query)
+      .sort({ publicationDate: SortType.Down })
+      .limit(limit || DEFAULT_PREMIUM_OFFER_COUNT)
+      .populate(['host'])
       .exec();
   }
 }
